@@ -1,6 +1,6 @@
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { pool } from '@/lib/db';
+import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { JWT } from 'next-auth/jwt';
@@ -32,7 +32,7 @@ export const authOptions: NextAuthOptions = {
         }
         let connection;
         try {
-          connection = await pool.getConnection();
+          connection = await db.getConnection();
           const [users] = await connection.query(
             'SELECT id, name, email, password, role, staff_type, profile_picture FROM users WHERE email = ?',
             [credentials.email]

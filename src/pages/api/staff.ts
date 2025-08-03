@@ -1,14 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import mysql from 'mysql2/promise';
+import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'jeca_kings_garment',
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions) as any;
@@ -19,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   let connection;
   try {
-    connection = await mysql.createConnection(dbConfig);
+    connection = await db.getConnection();
 
     if (req.method === 'GET') {
       const { role, staff_type } = req.query;
@@ -39,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       query += ' ORDER BY name ASC';
       
-      const [rows] = await connection.execute(query, params);
+      const [rows] = await connection.query(query, params);
       return res.status(200).json(rows);
     }
 
@@ -49,6 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Staff API Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   } finally {
-    if (connection) await connection.end();
+    if (connection && connection.release) connection.release();
   }
 }

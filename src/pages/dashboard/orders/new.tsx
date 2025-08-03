@@ -53,10 +53,7 @@ const NewOrder: React.FC = () => {
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.user.accessToken}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData),
       });
       if (!res.ok) throw new Error(await res.text() || 'Order creation failed');

@@ -94,9 +94,7 @@ const AdminDashboard: React.FC = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/orders', {
-        headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
-      });
+      const res = await fetch('/api/orders');
       if (!res.ok) throw new Error('Failed to fetch orders');
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);

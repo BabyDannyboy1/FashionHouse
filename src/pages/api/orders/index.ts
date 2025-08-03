@@ -1,21 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import mysql from 'mysql2/promise';
+import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'jeca_kings_garment',
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions) as any;
   
   let connection;
   try {
-    connection = await mysql.createConnection(dbConfig);
+    connection = await db.getConnection();
 
     if (req.method === 'GET') {
       const { customerId, status, orderType } = req.query;
@@ -64,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       query += ' ORDER BY o.created_at DESC';
       
-      const [rows] = await connection.execute(query, params);
+      const [rows] = await connection.query(query, params);
       return res.status(200).json(rows);
     }
 
@@ -85,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Missing required fields: customerId and order_type' });
       }
 
-      const [result] = await connection.execute(
+      const [result] = await connection.query(
         `INSERT INTO orders 
           (customer_id, status, order_type, description, appointment_date, measurements, image_urls, priority, notes, created_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
@@ -115,6 +109,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Orders API Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   } finally {
-    if (connection) await connection.end();
+    if (connection && connection.release) connection.release();
   }
 }

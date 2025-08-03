@@ -1,14 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import mysql from 'mysql2/promise';
+import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'jeca_kings_garment',
-};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions) as any;
@@ -24,10 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   let connection;
   try {
-    connection = await mysql.createConnection(dbConfig);
+    connection = await db.getConnection();
 
     if (req.method === 'GET') {
-      const [orders] = await connection.execute(
+      const [orders] = await connection.query(
         `SELECT 
           o.*,
           u.name as customer_name,
@@ -119,17 +113,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const query = `UPDATE orders SET ${updateFields.join(', ')} WHERE id = ?`;
       
-      await connection.beginTransaction();
+      if (connection.beginTransaction) await connection.beginTransaction();
       
-      const [result] = await connection.execute(query, updateValues);
+      const [result] = await connection.query(query, updateValues);
       
       if ((result as any).affectedRows === 0) {
-        await connection.rollback();
+        if (connection.rollback) await connection.rollback();
         return res.status(404).json({ error: 'Order not found' });
       }
 
       // Log the action for audit trail
-      await connection.execute(
+      await connection.query(
         `INSERT INTO order_history (order_id, user_id, action, details, created_at) 
          VALUES (?, ?, ?, ?, NOW())`,
         [
@@ -140,7 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]
       );
 
-      await connection.commit();
+      if (connection.commit) await connection.commit();
       
       return res.status(200).json({ 
         success: true, 
@@ -154,27 +148,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(403).json({ error: 'Insufficient permissions' });
       }
 
-      await connection.beginTransaction();
+      if (connection.beginTransaction) await connection.beginTransaction();
       
       // Soft delete - update status to cancelled instead of actual deletion
-      const [result] = await connection.execute(
+      const [result] = await connection.query(
         'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?',
         ['cancelled', id]
       );
       
       if ((result as any).affectedRows === 0) {
-        await connection.rollback();
+        if (connection.rollback) await connection.rollback();
         return res.status(404).json({ error: 'Order not found' });
       }
 
       // Log the cancellation
-      await connection.execute(
+      await connection.query(
         `INSERT INTO order_history (order_id, user_id, action, details, created_at) 
          VALUES (?, ?, ?, ?, NOW())`,
         [id, session.user.id, 'order_cancelled', JSON.stringify({ reason: 'Admin cancellation' })]
       );
 
-      await connection.commit();
+      if (connection.commit) await connection.commit();
       
       return res.status(200).json({ 
         success: true, 
@@ -185,10 +179,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (error: any) {
-    if (connection) await connection.rollback();
+    if (connection && connection.rollback) await connection.rollback();
     console.error('Order API Error:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   } finally {
-    if (connection) await connection.end();
+    if (connection && connection.release) connection.release();
   }
 }

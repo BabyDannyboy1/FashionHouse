@@ -53,9 +53,7 @@ const CustomerDashboard: React.FC = () => {
   const fetchAppointments = async () => {
     try {
       setAppointmentsLoading(true);
-      const res = await fetch(`/api/appointments?customerId=${session?.user?.id}`, {
-        headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
-      });
+      const res = await fetch(`/api/appointments?customerId=${session?.user?.id}`);
       const text = await res.text();
       if (text.trim().startsWith('<!DOCTYPE')) throw new Error('Session expired or unauthorized.');
       let data;
@@ -72,9 +70,7 @@ const CustomerDashboard: React.FC = () => {
   const fetchPayments = async () => {
     try {
       setPaymentsLoading(true);
-      const res = await fetch(`/api/payments?customerId=${session?.user?.id}`, {
-        headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
-      });
+      const res = await fetch(`/api/payments?customerId=${session?.user?.id}`);
       const text = await res.text();
       if (text.trim().startsWith('<!DOCTYPE')) throw new Error('Session expired or unauthorized.');
       let data;
@@ -92,11 +88,7 @@ const CustomerDashboard: React.FC = () => {
     try {
       setLoading(true);
       if (!session?.user?.id || !session.user.accessToken) throw new Error('User ID or token is undefined');
-      const res = await fetch(`/api/orders?customerId=${session.user.id}`, {
-        headers: {
-          Authorization: `Bearer ${session.user.accessToken}`,
-        },
-      });
+      const res = await fetch(`/api/orders?customerId=${session.user.id}`);
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Failed to fetch orders: ${res.status} - ${errorText}`);

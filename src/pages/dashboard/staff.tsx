@@ -67,16 +67,9 @@ const StaffDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {
-    if (!session?.user?.accessToken) {
-      setOrdersError('No access token available');
-      setOrdersLoading(false);
-      return;
-    }
     try {
       setOrdersLoading(true);
-      const res = await fetch('/api/orders', {
-        headers: { Authorization: `Bearer ${session.user.accessToken}` },
-      });
+      const res = await fetch('/api/orders');
       const text = await res.text();
       if (text.trim().startsWith('<!DOCTYPE')) throw new Error('Session expired or unauthorized.');
       let data;
@@ -91,16 +84,9 @@ const StaffDashboard: React.FC = () => {
   };
 
   const fetchPayments = async () => {
-    if (!session?.user?.accessToken) {
-      setPaymentsError('No access token available');
-      setPaymentsLoading(false);
-      return;
-    }
     try {
       setPaymentsLoading(true);
-      const res = await fetch('/api/payments', {
-        headers: { Authorization: `Bearer ${session.user.accessToken}` },
-      });
+      const res = await fetch('/api/payments');
       const text = await res.text();
       if (text.trim().startsWith('<!DOCTYPE')) throw new Error('Session expired or unauthorized.');
       let data;
@@ -115,16 +101,9 @@ const StaffDashboard: React.FC = () => {
   };
 
   const fetchAppointments = async () => {
-    if (!session?.user?.accessToken) {
-      setAppointmentsError('No access token available');
-      setAppointmentsLoading(false);
-      return;
-    }
     try {
       setAppointmentsLoading(true);
-      const res = await fetch('/api/appointments', {
-        headers: { Authorization: `Bearer ${session.user.accessToken}` },
-      });
+      const res = await fetch('/api/appointments');
       const text = await res.text();
       if (text.trim().startsWith('<!DOCTYPE')) throw new Error('Session expired or unauthorized.');
       let data;

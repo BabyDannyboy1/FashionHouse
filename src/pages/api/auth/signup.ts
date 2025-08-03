@@ -1,6 +1,6 @@
 // src/pages/api/auth/signup.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import mysql from 'mysql2/promise';
+import { db } from '@/lib/db';
 import bcrypt from 'bcrypt';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -14,16 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-  });
+  const connection = await db.getConnection();
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    await connection.execute(
+    await connection.query(
       'INSERT INTO users (name, username, email, password, role, staff_type) VALUES (?, ?, ?, ?, ?, ?)',
       [name, username, email, hashedPassword, role, staff_type]
     );
@@ -36,6 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(500).json({ error: 'Internal server error' });
     }
   } finally {
-    await connection.end();
+    if (connection && connection.release) connection.release();
   }
 }
